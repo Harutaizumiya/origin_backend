@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  </head>
+  <body>
+    <div>app</div>
+  </body>
+  <script>
+    // 在 node.js 用GET请求获取远程图片
+    axios({
+      method: "get",
+      url: "http://127.0.0.1:8000/product",
+    }).then((res) => {
+      console.log(res);
+    });
+  </script>
+</html>
