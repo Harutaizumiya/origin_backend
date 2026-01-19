@@ -1,0 +1,31 @@
+-- 产品表
+CREATE TABLE product (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '产品唯一ID',
+    barcode VARCHAR(64) NOT NULL UNIQUE COMMENT '一维条码信息',
+    product_name VARCHAR(255) NOT NULL COMMENT '产品名称',
+    shelf_life_days INT UNSIGNED NOT NULL COMMENT '保质期时长(天)',
+    location VARCHAR(128) DEFAULT NULL COMMENT '默认存储位置',
+    category VARCHAR(64) DEFAULT NULL COMMENT '产品分类',
+    unit VARCHAR(32) DEFAULT NULL COMMENT '计量单位(瓶/袋/件)',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='产品信息表';
+
+-- 批次表
+CREATE TABLE batches (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '批次唯一ID',
+    product_id BIGINT UNSIGNED NOT NULL COMMENT '关联产品ID',
+    batch_code VARCHAR(64) NOT NULL UNIQUE COMMENT '批次编号',
+    qr_code VARCHAR(255) UNIQUE COMMENT '二维码信息',
+    manufacture_date DATE DEFAULT NULL COMMENT '生产日期',
+    expiry_date DATE DEFAULT NULL COMMENT '过期日期',
+    received_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '入库时间',
+    quantity INT UNSIGNED DEFAULT 1 COMMENT '数量',
+    status ENUM('in_stock','out_stock','expired','disposed') DEFAULT 'in_stock' COMMENT '库存状态',
+    location VARCHAR(128) DEFAULT NULL COMMENT '实际存放位置',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录更新时间',
+    CONSTRAINT fk_batches_products FOREIGN KEY (product_id) REFERENCES products(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='批次信息表';

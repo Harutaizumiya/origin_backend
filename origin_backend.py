@@ -22,3 +22,10 @@ app.include_router(batches.router)
 async def hello():
     with open('./index.html','r',encoding="utf-8") as f:
         return f.read()
+
+
+#局域网开发
+#uvicorn main:app --host 0.0.0.0 --port 8000
+
+#本地开发
+#uvicorn main:app --reload
