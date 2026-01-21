@@ -1,3 +1,4 @@
+import json
 from typing import Optional
 from psycopg2 import errors
 from fastapi import APIRouter,Query,HTTPException, status
@@ -124,79 +125,47 @@ def delete_product(product_id: int):
         return {"message": f"Product {product_id} not found"}
     return {"message": f"Product {product_id} deleted"}
 
-#查询产品（通过ID）
-@router.get("/{product_id}")
-def get_product_info(product_id: int):
-    conn = get_supabase_client()
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT * FROM product WHERE id=%s",
-        (product_id,)
-    )
-    row = cursor.fetchone()
-    cursor.close()
-    conn.close()
-    if row:
-        return row
-    else:
-        return {"error": "product not found"}
-
-#通过名称查询
-@router.get("/name/{product_name}")
-def get_product_info(product_name: str):
-    conn = get_db()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute(
-        "SELECT * FROM product WHERE product_name=%s",
-        (product_name,)
-    )
-    row = cursor.fetchone()
-    cursor.close()
-    conn.close()
-    if row:
-        return row
-    else:
-        return {"error": "product not found"}
 
 #查询产品
-#2026.1.20不携带参数测试通过
+#2026.1.21携带参数测试通过
 @router.get("")
-def query_product(search: Optional[str] = Query(default=None)):
+def get_product(search: Optional[str] = Query(default=None)):
     conn = get_supabase_client()
-    res = (conn.table("product")
-           .select("*")
-           .execute()
-           )
-    return res
+    query = (
+        conn
+        .table("product")
+        .select(
+            "id, barcode, product_name, shelf_life_days, "
+            "location, category, unit, created_at, updated_at"
+        )
+    )
+    if search:
+        like_value = f"%{search}%"
+        query = query.or_(
+            ",".join([
+                f"barcode.ilike.{like_value}",
+                f"product_name.ilike.{like_value}",
+                f"category.ilike.{like_value}",
+                f"location.ilike.{like_value}",
+                f"unit.ilike.{like_value}",
+            ])
+        )
+        res = query.execute()
+        res = res.data
+        return {
+            "code": 0,
+            "message": "ok",
+            "data": res
+        }
+    else:
+        res = (conn.table("product")
+               .select("*")
+               .execute()
+               )
+        return {
+            "code": 0,
+            "message": "ok",
+            "data": res
+        }
 
-#查询所有产品
-# @router.get("")
-# def get_all_product():
-#     conn = get_db()
-#     try:
-#         with conn.cursor(dictionary=True) as cursor:
-#             cursor.execute(
-#                 "SELECT * FROM product"
-#             )
-#             row = cursor.fetchall()
-#             if row:
-#                 return row
-#
-#     except Exception as e:
-#         return {f"error":{e}}
-#
-#     finally:
-#         conn.close()
 
-    # conn = get_db()
-    # cursor = conn.cursor(dictionary=True)
-    # cursor.execute(
-    #     "SELECT * FROM product"
-    # )
-    # row = cursor.fetchall()
-    # cursor.close()
-    # conn.close()
-    # if row:
-    #     return row
-    # else:
-    #     return {"error": "product not found"}
