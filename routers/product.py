@@ -1,6 +1,5 @@
 from typing import Optional
 import postgrest.exceptions
-from psycopg2 import errors
 from fastapi import APIRouter, Query, HTTPException, status
 from supa_connect import get_supabase_client
 from fastapi import Path
@@ -27,46 +26,39 @@ def add_product(product: ProductCreate):
     conn = get_supabase_client()
 
     try:
-        with conn.cursor() as cursor:
-            sql = """
-                INSERT INTO product
-                (barcode, product_name, shelf_life_days, location, category, unit)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                RETURNING id;
-            """
-
-            cursor.execute(
-                sql,
-                (
-                    product.barcode,
-                    product.product_name,
-                    product.shelf_life_days,
-                    product.location,
-                    product.category,
-                    product.unit,
-                ),
-            )
-
-            new_id = cursor.fetchone()[0]
-            conn.commit()
-
-            return {
-                "message": "Product added successfully",
-                "id": new_id,
+        res = (
+            conn
+            .table("product")
+            .insert({
+                "barcode": product.barcode,
                 "product_name": product.product_name,
-            }
+                "shelf_life_days": product.shelf_life_days,
+                "location": product.location,
+                "category": product.category,
+                "unit": product.unit
+            })
+            .execute()
+        )
 
-    except errors.UniqueViolation:
-        conn.rollback()
-        raise HTTPException(status_code=400, detail="该条码已存在")
+        # 如果返回 data 为空，说明插入失败
+        if not res.data:
+            raise HTTPException(status_code=500, detail="产品插入失败")
 
-    except Exception as e:
-        conn.rollback()
-        print(f"Database Error: {e}")
-        raise HTTPException(status_code=500, detail="服务器内部错误，无法保存产品")
+        new_id = res.data[0]["id"]
 
-    finally:
-        conn.close()
+        return {
+            "code": 0,
+            "message": "Product added successfully",
+            "id": new_id,
+            "product_name": product.product_name,
+        }
+
+    except postgrest.exceptions.APIError as e:
+        # 唯一约束冲突 / 其他错误
+        if e.code == "23505":  # PostgreSQL 唯一约束违反
+            raise HTTPException(status_code=400, detail="该条码已存在")
+        raise HTTPException(status_code=500, detail=f"服务器内部错误: {e}")
+
 
 # 更新产品信息
 class ProductUpdate(BaseModel):
@@ -78,37 +70,41 @@ class ProductUpdate(BaseModel):
 
 @router.put("/{product_id}")
 def update_product(product_id: int, product: ProductUpdate):
-    conn = get_db()
-    cursor = conn.cursor()
+    conn = get_supabase_client()
 
-    fields = []
-    values = []
-    if product.product_name:
-        fields.append("product_name = %s")
-        values.append(product.product_name)
-    if product.shelf_life_days:
-        fields.append("shelf_life_days = %s")
-        values.append(product.shelf_life_days)
-    if product.location:
-        fields.append("location = %s")
-        values.append(product.location)
-    if product.category:
-        fields.append("category = %s")
-        values.append(product.category)
-    if product.unit:
-        fields.append("unit = %s")
-        values.append(product.unit)
+    # 构造更新字典，只保留非 None 的字段
+    update_data = {}
+    if product.product_name is not None:
+        update_data["product_name"] = product.product_name
+    if product.shelf_life_days is not None:
+        update_data["shelf_life_days"] = product.shelf_life_days
+    if product.location is not None:
+        update_data["location"] = product.location
+    if product.category is not None:
+        update_data["category"] = product.category
+    if product.unit is not None:
+        update_data["unit"] = product.unit
 
-    if not fields:
+    if not update_data:
         return {"message": "No fields to update"}
 
-    values.append(product_id)
-    sql = f"UPDATE product SET {', '.join(fields)} WHERE id = %s"
-    cursor.execute(sql, tuple(values))
-    conn.commit()
-    cursor.close()
-    conn.close()
-    return {"message": f"Product {product_id} updated"}
+    try:
+        res = (
+            conn
+            .table("product")
+            .update(update_data)
+            .eq("id", product_id)
+            .execute()
+        )
+
+        # 如果 data 为空，说明没有找到对应 id
+        if not res.data:
+            raise HTTPException(status_code=404, detail=f"Product {product_id} not found")
+
+        return {"message": f"Product {product_id} updated", "updated_fields": list(update_data.keys())}
+
+    except postgrest.APIError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update product: {e}")
 
 #删除产品
 @router.delete("/{product_id}")

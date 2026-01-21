@@ -25,7 +25,7 @@ async def hello():
 
 
 #局域网开发
-#uvicorn main:app --host 0.0.0.0 --port 8000
+#poetry run uvicorn origin_backend:app --host 0.0.0.0 --port 8000 --reload
 
 #本地开发
 #uvicorn main:app --reload
