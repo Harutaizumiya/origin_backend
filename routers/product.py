@@ -1,9 +1,9 @@
-import json
 from typing import Optional
+import postgrest.exceptions
 from psycopg2 import errors
-from fastapi import APIRouter,Query,HTTPException, status
+from fastapi import APIRouter, Query, HTTPException, status
 from supa_connect import get_supabase_client
-from sqlalchemy import text
+from fastapi import Path
 from pydantic import BaseModel
 
 router = APIRouter(
@@ -11,19 +11,19 @@ router = APIRouter(
     tags=["product"]
 )
 
+
 #新增产品
 class ProductCreate(BaseModel):
-    barcode: str                    #条码信息
-    product_name: str               #产品名称
-    shelf_life_days: int            #保质期
-    location: str | None = None     #存储位置
-    category: str | None = None     #产品类型
-    unit: str | None = None         #存储单位
+    barcode: str  #条码信息
+    product_name: str  #产品名称
+    shelf_life_days: int  #保质期
+    location: str | None = None  #存储位置
+    category: str | None = None  #产品类型
+    unit: str | None = None  #存储单位
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def add_product(product: ProductCreate):
-
     conn = get_supabase_client()
 
     try:
@@ -112,18 +112,33 @@ def update_product(product_id: int, product: ProductUpdate):
 
 #删除产品
 @router.delete("/{product_id}")
-def delete_product(product_id: int):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM product WHERE id=%s", (product_id,))
-    conn.commit()
-    deleted_rows = cursor.rowcount  # 受影响行数
-    cursor.close()
-    conn.close()
+def delete_product(
+    product_id: int = Path(
+        ...,
+        gt=0,
+        description="产品 ID，不能为空且必须大于 0"
+    )
+):
+    try:
+        conn = get_supabase_client()
+        res = (
+            conn
+            .table("product")
+            .delete()
+            .eq("id", product_id)
+            .execute()
+        )
+    except postgrest.APIError as e:
+        raise HTTPException(status_code=400, detail=e.json())
 
-    if deleted_rows == 0:
-        return {"message": f"Product {product_id} not found"}
-    return {"message": f"Product {product_id} deleted"}
+    if not res.data:
+        raise HTTPException(status_code=404, detail="产品不存在")
+
+    return {
+            "code":0,
+            "message": "删除成功",
+            "deleted": res.data
+            }
 
 
 #查询产品
@@ -167,5 +182,3 @@ def get_product(search: Optional[str] = Query(default=None)):
             "message": "ok",
             "data": res
         }
-
-
