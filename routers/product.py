@@ -178,3 +178,39 @@ def get_product(search: Optional[str] = Query(default=None)):
             "message": "ok",
             "data": res
         }
+
+@router.get("/category",description="指定产品类型查询，只返回product.category字段，支持模糊查询")
+def get_category(search: Optional[str] = Query(default=None)):
+    conn = get_supabase_client()
+
+    query = (
+        conn
+        .table("product")
+        .select("category")
+    )
+
+    if search:
+        like_value = f"%{search}%"
+        query = query.like("category", like_value)
+
+    res = query.execute()
+    rows = res.data or []
+
+    # Python 去重 + 过滤空值
+    categories = list({
+        row["category"]
+        for row in rows
+        if row.get("category")
+    })
+
+    if search and not categories:
+        raise HTTPException(
+            status_code=404,
+            detail=f"category not found for search='{search}'"
+        )
+
+    return {
+        "code": 0,
+        "message": "ok",
+        "data": categories
+    }
