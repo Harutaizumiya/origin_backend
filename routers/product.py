@@ -161,23 +161,16 @@ def get_product(search: Optional[str] = Query(default=None)):
                 f"unit.ilike.{like_value}",
             ])
         )
-        res = query.execute()
-        res = res.data
-        return {
-            "code": 0,
-            "message": "ok",
-            "data": res
-        }
-    else:
-        res = (conn.table("product")
-               .select("*")
-               .execute()
-               )
-        return {
-            "code": 0,
-            "message": "ok",
-            "data": res
-        }
+
+        # 3. 统一执行并返回结果
+        # 无论是否有 search，逻辑都保持一致
+    res = query.execute()
+
+    return {
+        "code": 0,
+        "message": "ok",
+        "data": res.data  # 确保这里始终取 .data
+    }
 
 @router.get("/category",description="指定产品类型查询，只返回product.category字段，支持模糊查询")
 def get_category(search: Optional[str] = Query(default=None)):
