@@ -77,6 +77,8 @@ def add_product(product: ProductCreate):
         # 唯一约束冲突 / 其他错误
         if e.code == "23505":  # PostgreSQL 唯一约束违反
             raise HTTPException(status_code=400, detail="该条码已存在")
+        if e.code == "23502":
+            raise HTTPException(status_code=400, detail="缺少参数")
         raise HTTPException(status_code=500, detail=f"服务器内部错误: {e}")
 
 
