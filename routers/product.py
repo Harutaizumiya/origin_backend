@@ -53,7 +53,8 @@ def add_product(product: ProductCreate):
                 "shelf_life_days": product.shelf_life_days,
                 "location": product.location,
                 "category": product.category,
-                "unit": product.unit
+                "unit": product.unit,
+                "manufacturer": product.manufacturer
             })
             .execute()
         )

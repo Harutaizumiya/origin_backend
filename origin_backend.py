@@ -28,4 +28,4 @@ async def hello():
 #poetry run uvicorn origin_backend:app --host 0.0.0.0 --port 8000 --reload
 
 #本地开发
-#uvicorn main:app --reload
+#uvicorn origin_backend:app --reload
