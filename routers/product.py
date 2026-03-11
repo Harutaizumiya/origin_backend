@@ -92,6 +92,7 @@ class ProductUpdate(BaseModel):
     location: str | None = None
     category: str | None = None
     unit: str | None = None
+    manufacturer: str | None = None
 
 @router.put("/{product_id}")
 def update_product(product_id: int, product: ProductUpdate):
@@ -124,6 +125,8 @@ def update_product(product_id: int, product: ProductUpdate):
         update_data["category"] = product.category
     if product.unit is not None:
         update_data["unit"] = product.unit
+    if product.manufacturer is not None:
+        update_data["manufacturer"] = product.manufacturer
 
     # 如果没有需要更新的字段，直接返回
     if not update_data:
@@ -221,7 +224,7 @@ def get_product(search: Optional[str] = Query(default=None)):
         .table("product")
         .select(
             "id, barcode, product_name, shelf_life_days, "
-            "location, category, unit, created_at, updated_at"
+            "location, category, unit, manufacturer,created_at, updated_at"
         )
     )
 
@@ -235,6 +238,7 @@ def get_product(search: Optional[str] = Query(default=None)):
                 f"category.ilike.{like_value}",
                 f"location.ilike.{like_value}",
                 f"unit.ilike.{like_value}",
+                f"manufacturer.ilike.{like_value}",
             ])
         )
 
