@@ -22,6 +22,7 @@ class ProductCreate(BaseModel):
     location: str | None = None  #存储位置
     category: str | None = None  #产品类型
     unit: str | None = None  #存储单位
+    manufacturer: str | None = None
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
